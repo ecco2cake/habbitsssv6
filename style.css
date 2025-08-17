@@ -13,6 +13,10 @@ button{cursor:pointer;border:1px solid var(--border);background:#1c1e24;color:#f
 button.round{width:44px;height:44px;border-radius:50%;font-size:22px;padding:0}
 button.icon{background:transparent;border-radius:8px;padding:6px}
 
+/* Hide native file input explicitly to avoid visible "File not chosen" label */
+input[type="file"]{display:none !important; visibility:hidden !important; width:0 !important; height:0 !important; margin:0 !important; padding:0 !important; border:0 !important;}
+
+/* layout */
 main{padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;max-width:420px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 0 #13141a}
 .card-head{display:flex;align-items:center;justify-content:space-between}

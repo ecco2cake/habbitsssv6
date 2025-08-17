@@ -1,5 +1,5 @@
-// Полная версия v5: CSP + cache-control + безопасное рендеринг (textContent), экспорт/импорт, редактирование, удаление, сегодня-кнопка, авто-пропуски
-const LS_KEY='habit_cards_full_v5';
+// v5.1: hide file input via CSS, keep import button to trigger it. Full app logic with safe rendering
+const LS_KEY='habit_cards_full_v5_1';
 const state={ date:new Date(), habits:[], data:{} };
 
 function ymKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
@@ -112,11 +112,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('nextMonth').addEventListener('click', nextMonth);
   document.getElementById('addHabitBtn').addEventListener('click', ()=>openDialog(null));
   document.getElementById('settingsBtn').addEventListener('click', ()=>{ document.getElementById('settingsDialog').showModal(); });
+
+  // export/import handlers
   document.getElementById('exportBtn').addEventListener('click', ()=>{
     const blob = new Blob([localStorage.getItem(LS_KEY)||'{}'], {type:'application/json'});
     const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='habits.json'; a.click(); URL.revokeObjectURL(url);
   });
-  document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
-  document.getElementById('importFile').addEventListener('change', e=>{ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{ try{ const o = JSON.parse(r.result); state.habits = o.habits || []; state.data = o.data || {}; save(); render(); }catch{ alert('Не удалось импортировать JSON'); } }; r.readAsText(f); });
+  const importFile = document.getElementById('importFile');
+  document.getElementById('importBtn').addEventListener('click', ()=>{ importFile.click(); });
+  importFile.addEventListener('change', e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader(); r.onload = ()=>{
+      try{ const o = JSON.parse(r.result); state.habits = o.habits || []; state.data = o.data || {}; save(); render(); }catch{ alert('Не удалось импортировать JSON'); }
+    }; r.readAsText(f);
+  });
+
+  document.getElementById('importBtn').addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); document.getElementById('importFile').click(); } });
   document.getElementById('clearAll').addEventListener('click', ()=>{ if(confirm('Удалить все данные?')){ localStorage.removeItem(LS_KEY); state.habits=[]; state.data={}; load(); save(); render(); document.getElementById('settingsDialog').close(); } });
 });

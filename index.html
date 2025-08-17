@@ -87,11 +87,14 @@
   <dialog id="settingsDialog">
     <form method="dialog" class="dialog">
       <h3>Настройки</h3>
-      <div class="settings-actions">
-        <button id="exportBtn" type="button">Экспорт</button>
-        <input id="importFile" type="file" accept="application/json" style="display:none">
-        <button id="importBtn" type="button">Импорт</button>
-        <button id="clearAll" type="button">Очистить все данные</button>
+      <div class="settings-actions" style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px">
+          <button id="exportBtn" type="button">Экспорт</button>
+          <button id="importBtn" type="button">Импорт</button>
+          <button id="clearAll" type="button">Очистить все данные</button>
+        </div>
+        <!-- Hidden file input (never visible) -->
+        <input id="importFile" type="file" accept="application/json" aria-hidden="true">
       </div>
       <menu>
         <button value="close">Закрыть</button>
