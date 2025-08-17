@@ -1,5 +1,5 @@
-// v5.1: hide file input via CSS, keep import button to trigger it. Full app logic with safe rendering
-const LS_KEY='habit_cards_full_v5_1';
+// v5.2: импорт с валидацией и try/catch
+const LS_KEY='habit_cards_full_v5_2';
 const state={ date:new Date(), habits:[], data:{} };
 
 function ymKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
@@ -14,6 +14,46 @@ function save(){ localStorage.setItem(LS_KEY, JSON.stringify({date:state.date, h
 function ensureMonth(){ const key=ymKey(state.date), d=dim(state.date); if(!state.data[key]) state.data[key]={}; for(const h of state.habits){ if(!state.data[key][h.id]) state.data[key][h.id]=Array.from({length:d},()=>({done:0})); const arr=state.data[key][h.id]; if(arr.length!==d){ if(arr.length<d){ while(arr.length<d) arr.push({done:0}); } else state.data[key][h.id]=arr.slice(0,d); } } }
 
 function setSafeText(el, txt){ el.textContent = txt === undefined || txt === null ? '' : String(txt); }
+
+// --- валидация импортируемого JSON
+function validateImported(obj){
+  if(typeof obj !== 'object' || obj === null) throw new Error('JSON должен быть объектом');
+  const habits = Array.isArray(obj.habits) ? obj.habits : null;
+  const data = (obj.data && typeof obj.data === 'object') ? obj.data : {};
+  if(!habits) throw new Error('В JSON нет массива "habits"');
+  const cleanHabits = [];
+  for(const h of habits){
+    if(typeof h !== 'object' || h === null) continue;
+    const name = (h.name && String(h.name).trim()) || null;
+    if(!name) continue; // пропускаем пустые записи
+    const color = (h.color && String(h.color)) || '#6c5ce7';
+    const parts = Number.isFinite(h.parts) && h.parts>0 ? Math.max(1,Math.floor(h.parts)) : 1;
+    const id = (h.id && String(h.id)) || uid();
+    const note = (h.note && String(h.note)) || '';
+    const createdAt = Number.isFinite(h.createdAt) ? h.createdAt : Date.now();
+    cleanHabits.push({id,name,color,parts,note,createdAt});
+  }
+  if(cleanHabits.length===0) throw new Error('Нет корректных привычек в JSON');
+  // data — оставляем, но будем проверять на предмет соответствия id (не критично)
+  const cleanData = {};
+  for(const ky of Object.keys(data)){
+    if(typeof data[ky] !== 'object') continue;
+    cleanData[ky] = {};
+    for(const hid of Object.keys(data[ky])){
+      if(!cleanHabits.find(x=>x.id===hid)) continue; // отбросить данные для неизвестных привычек
+      const arr = data[ky][hid];
+      if(!Array.isArray(arr)) continue;
+      // оставляем только объекты с numeric 'done'
+      cleanData[ky][hid] = arr.map(item=>{
+        if(!item || typeof item !== 'object') return {done:0};
+        const done = Number.isFinite(item.done) ? Math.max(0, Math.floor(item.done)) : 0;
+        return {done};
+      });
+    }
+  }
+  return {habits:cleanHabits, data:cleanData};
+}
+// --- конец валидации
 
 function render(){ document.getElementById('monthLabel').textContent = state.date.toLocaleString('ru-RU',{month:'long',year:'numeric'}); ensureMonth(); const list=document.getElementById('list'); list.innerHTML=''; const key=ymKey(state.date); const days=dim(state.date); const tIndex=todayIndex(); const now = new Date();
 
@@ -113,7 +153,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('addHabitBtn').addEventListener('click', ()=>openDialog(null));
   document.getElementById('settingsBtn').addEventListener('click', ()=>{ document.getElementById('settingsDialog').showModal(); });
 
-  // export/import handlers
+  // export/import handlers with try/catch + validation
   document.getElementById('exportBtn').addEventListener('click', ()=>{
     const blob = new Blob([localStorage.getItem(LS_KEY)||'{}'], {type:'application/json'});
     const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='habits.json'; a.click(); URL.revokeObjectURL(url);
@@ -122,9 +162,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('importBtn').addEventListener('click', ()=>{ importFile.click(); });
   importFile.addEventListener('change', e=>{
     const f = e.target.files[0]; if(!f) return;
-    const r = new FileReader(); r.onload = ()=>{
-      try{ const o = JSON.parse(r.result); state.habits = o.habits || []; state.data = o.data || {}; save(); render(); }catch{ alert('Не удалось импортировать JSON'); }
-    }; r.readAsText(f);
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const parsed = JSON.parse(r.result);
+        const validated = validateImported(parsed); // может выбросить
+        // сохраним старую копию на случай отката
+        const backup = localStorage.getItem(LS_KEY);
+        try{
+          state.habits = validated.habits;
+          // merge data: keep existing months + replace with validated where provided
+          for(const k of Object.keys(validated.data||{})){ state.data[k] = validated.data[k]; }
+          save(); render();
+          alert('Импорт выполнен успешно.');
+        }catch(errInner){
+          // откат при ошибке при применении
+          if(backup) localStorage.setItem(LS_KEY, backup);
+          load();
+          render();
+          alert('Ошибка при применении данных: '+String(errInner));
+        }
+      }catch(err){
+        alert('Не удалось импортировать JSON: '+String(err.message||err));
+      }
+    };
+    r.onerror = ()=>{ alert('Не удалось прочитать файл'); };
+    r.readAsText(f);
+    // очистим input чтобы при следующем выборе сработал change
+    importFile.value = '';
   });
 
   document.getElementById('importBtn').addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); document.getElementById('importFile').click(); } });
