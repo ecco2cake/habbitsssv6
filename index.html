@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Привычки · PWA</title>
+
+  <!-- Cache control meta -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';">
+
+  <meta name="theme-color" content="#0e0f12">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="left-controls">
+      <button id="settingsBtn" class="icon" aria-label="Настройки">⚙️</button>
+      <div class="month-nav" role="navigation" aria-label="Навигация по месяцам">
+        <button id="prevMonth" aria-label="Предыдущий месяц">◀</button>
+        <div id="monthLabel" aria-live="polite"></div>
+        <button id="nextMonth" aria-label="Следующий месяц">▶</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button id="addHabitBtn" class="round" aria-label="Добавить привычку">＋</button>
+    </div>
+  </header>
+
+  <main id="list" aria-live="polite"></main>
+
+  <template id="habitCardTpl">
+    <section class="card" aria-label="Привычка">
+      <header class="card-head">
+        <div class="meta">
+          <div class="dot" aria-hidden="true"></div>
+          <div class="titles">
+            <div class="title"></div>
+            <div class="subtitle"></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="todayBtn" title="Отметить сегодня">✅</button>
+          <button class="edit" title="Редактировать">✎</button>
+        </div>
+      </header>
+      <div class="grid" role="grid"></div>
+      <footer class="card-foot">
+        <div class="stats" aria-live="polite"></div>
+      </footer>
+    </section>
+  </template>
+
+  <dialog id="habitDialog">
+    <form method="dialog" class="dialog">
+      <h3 id="dlgTitle">Новая привычка</h3>
+      <label>Название
+        <input id="habitName" type="text" placeholder="Например, Вода" required>
+      </label>
+      <label>Цвет
+        <input id="habitColor" type="color" value="#6c5ce7">
+      </label>
+      <label>Описание (необязательно)
+        <input id="habitNote" type="text" placeholder="Короткое описание">
+      </label>
+      <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <div>
+          <button id="dlgCancel" type="button">Отмена</button>
+          <button id="dlgSave" type="submit" value="ok" class="primary">Сохранить</button>
+        </div>
+        <button id="dlgDelete" type="button" style="display:none;background:#3a2a2a;border-radius:10px;padding:8px 10px">🗑 Удалить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog">
+      <h3>Настройки</h3>
+      <div class="settings-actions">
+        <button id="exportBtn" type="button">Экспорт</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none">
+        <button id="importBtn" type="button">Импорт</button>
+        <button id="clearAll" type="button">Очистить все данные</button>
+      </div>
+      <menu>
+        <button value="close">Закрыть</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
